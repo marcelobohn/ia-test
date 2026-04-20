@@ -24,6 +24,11 @@ def normalize_text(text: str) -> str:
 
 
 def split_into_chunks(text: str, max_chars: int = 900, overlap: int = 150) -> List[str]:
+    if max_chars <= 0:
+        raise ValueError("max_chars deve ser positivo")
+    if overlap < 0 or overlap >= max_chars:
+        raise ValueError("overlap deve estar entre 0 e max_chars - 1")
+
     text = normalize_text(text)
     if not text:
         return []
@@ -38,7 +43,7 @@ def split_into_chunks(text: str, max_chars: int = 900, overlap: int = 150) -> Li
         chunks.append(chunk)
         if end == text_len:
             break
-        start = max(0, end - overlap)
+        start = end - overlap
 
     return chunks
 
@@ -55,11 +60,23 @@ def read_pdf_file(path: Path) -> str:
         reader = PdfReader(str(path))
         pages = [page.extract_text() or "" for page in reader.pages]
         return "\n".join(pages)
-    except Exception:
+    except Exception as exc:
+        st.warning(f"Nao foi possivel ler o PDF {path}: {exc}")
         return ""
 
 
-def load_documents_from_folder(folder: Path) -> List[Dict[str, str]]:
+def _folder_signature(folder: Path) -> tuple:
+    if not folder.exists():
+        return ()
+    entries = []
+    for p in sorted(folder.rglob("*")):
+        if p.is_file():
+            info = p.stat()
+            entries.append((str(p), info.st_mtime_ns, info.st_size))
+    return tuple(entries)
+
+
+def _load_documents_from_folder_impl(folder: Path) -> List[Dict[str, str]]:
     documents: List[Dict[str, str]] = []
     if not folder.exists():
         return documents
@@ -92,13 +109,21 @@ def load_documents_from_folder(folder: Path) -> List[Dict[str, str]]:
     return documents
 
 
+@st.cache_data(show_spinner=False)
+def load_documents_from_folder(folder_str: str, signature: tuple) -> List[Dict[str, str]]:
+    return _load_documents_from_folder_impl(Path(folder_str))
+
+
 def score_chunk(query: str, chunk_text: str) -> int:
     words = re.findall(r"\w+", query.lower())
     if not words:
         return 0
 
     lowered = chunk_text.lower()
-    return sum(lowered.count(word) for word in words)
+    total = 0
+    for word in words:
+        total += len(re.findall(rf"\b{re.escape(word)}\b", lowered))
+    return total
 
 
 def retrieve_relevant_chunks(query: str, documents: List[Dict[str, str]], top_k: int = 5) -> List[Dict[str, str]]:
@@ -147,36 +172,41 @@ def ask_ollama(prompt: str, model: str, ollama_url: str) -> str:
     return data.get("response", "")
 
 
+@st.cache_data(show_spinner=False)
+def _index_upload_bytes(name: str, raw_bytes: bytes) -> List[Dict[str, str]]:
+    suffix = Path(name).suffix.lower()
+    content = ""
+
+    if suffix in {".txt", ".md"}:
+        content = raw_bytes.decode("utf-8", errors="ignore")
+    elif suffix == ".pdf" and PdfReader is not None:
+        pdf_stream = io.BytesIO(raw_bytes)
+        try:
+            reader = PdfReader(pdf_stream)
+            content = "\n".join((page.extract_text() or "") for page in reader.pages)
+        except Exception:
+            st.warning(f"Nao foi possivel ler o PDF enviado: {name}")
+            content = ""
+
+    if not content.strip():
+        return []
+
+    return [
+        {
+            "source": f"upload/{name}",
+            "chunk_id": f"{name}#{i}",
+            "text": chunk,
+        }
+        for i, chunk in enumerate(split_into_chunks(content), start=1)
+    ]
+
+
 def index_uploaded_files(files) -> List[Dict[str, str]]:
     docs: List[Dict[str, str]] = []
-
     for uploaded in files:
-        name = uploaded.name
-        suffix = Path(name).suffix.lower()
-        content = ""
-
-        if suffix in {".txt", ".md"}:
-            content = uploaded.read().decode("utf-8", errors="ignore")
-        elif suffix == ".pdf" and PdfReader is not None:
-            pdf_stream = io.BytesIO(uploaded.read())
-            try:
-                reader = PdfReader(pdf_stream)
-                content = "\n".join((page.extract_text() or "") for page in reader.pages)
-            except Exception:
-                content = ""
-
-        if not content.strip():
-            continue
-
-        for i, chunk in enumerate(split_into_chunks(content), start=1):
-            docs.append(
-                {
-                    "source": f"upload/{name}",
-                    "chunk_id": f"{name}#{i}",
-                    "text": chunk,
-                }
-            )
-
+        uploaded.seek(0)
+        raw_bytes = uploaded.read()
+        docs.extend(_index_upload_bytes(uploaded.name, raw_bytes))
     return docs
 
 
@@ -200,7 +230,7 @@ def main() -> None:
             accept_multiple_files=True,
         )
 
-    local_docs = load_documents_from_folder(DATA_DIR)
+    local_docs = load_documents_from_folder(str(DATA_DIR), _folder_signature(DATA_DIR))
     uploaded_docs = index_uploaded_files(uploads or [])
     all_docs = local_docs + uploaded_docs
 
@@ -238,6 +268,9 @@ def main() -> None:
                     answer = ask_ollama(prompt, model=model, ollama_url=ollama_url)
                 except requests.RequestException as exc:
                     st.error(f"Falha ao chamar Ollama: {exc}")
+                    return
+                except ValueError as exc:
+                    st.error(f"Resposta invalida do Ollama (JSON malformado): {exc}")
                     return
 
             st.subheader("Resposta")
