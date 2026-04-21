@@ -32,15 +32,17 @@ async function walkFiles(folder: string): Promise<string[]> {
   return out;
 }
 
-async function folderSignature(folder: string): Promise<string> {
-  if (!existsSync(folder)) return "missing";
+async function folderSignature(
+  folder: string,
+): Promise<{ signature: string; files: string[] }> {
+  if (!existsSync(folder)) return { signature: "missing", files: [] };
   const files = await walkFiles(folder);
   const parts: string[] = [];
   for (const f of files) {
     const s = await stat(f);
     parts.push(`${f}:${s.mtimeMs}:${s.size}`);
   }
-  return parts.join("|");
+  return { signature: parts.join("|"), files };
 }
 
 async function readTextFile(path: string): Promise<string> {
@@ -65,17 +67,11 @@ export async function loadDocumentsFromFolder(
   folder: string,
   onWarning: (msg: string) => void = () => {},
 ): Promise<DocChunk[]> {
-  const signature = await folderSignature(folder);
+  const { signature, files } = await folderSignature(folder);
   const cached = folderCache.get(folder);
   if (cached && cached.signature === signature) return cached.chunks;
 
   const chunks: DocChunk[] = [];
-  if (!existsSync(folder)) {
-    folderCache.set(folder, { signature, chunks });
-    return chunks;
-  }
-
-  const files = await walkFiles(folder);
   for (const path of files) {
     const suffix = extname(path).toLowerCase();
     if (!SUPPORTED.has(suffix)) continue;
