@@ -1,123 +1,61 @@
-# FAQ Interno Local (Streamlit + Ollama)
+# FAQ Interno Local (Node + Vue + Ollama)
 
-Aplicacao simples de FAQ interno usando IA local, sem API online.
+FAQ interno local com IA via Ollama, backend Node/TypeScript e frontend Vue 3.
 
-## O que este MVP faz
+## Arquitetura
 
-- Le arquivos locais em `./docs` (`.txt`, `.md`, `.pdf`)
-- Permite upload rapido de arquivos na interface
-- Faz busca simples por relevancia textual
-- Envia contexto para um modelo local no Ollama
-- Gera resposta em portugues
+- `backend/` — API Fastify (TypeScript) que le `./docs`, aceita uploads, chama Ollama.
+- `frontend/` — SPA Vue 3 (Vite + TypeScript) consumindo a API.
+- `docs/` — base de conhecimento local (`.txt`, `.md`, `.pdf`).
+- `app.py` — versao antiga (Streamlit), mantida por referencia.
 
 ## Requisitos
 
-- Python 3.10+
-- Ollama instalado e rodando localmente
+- Node 20+
+- Ollama instalado e rodando
 
-## 0) Instalar Ollama (Ubuntu)
-
-Se ainda nao tem Ollama instalado:
+## Setup
 
 ```bash
-sudo apt update
-sudo apt install -y curl
+# Ollama
 curl -fsSL https://ollama.com/install.sh | sh
-```
-
-Habilitar o serviço para iniciar automaticamente:
-
-```bash
 sudo systemctl enable --now ollama
-sudo systemctl status ollama
-```
-
-Testar se esta funcionando:
-
-```bash
-curl http://localhost:11434
-```
-
-## 1) Subir um modelo no Ollama
-
-Exemplo com modelo leve:
-
-```bash
 ollama pull qwen2.5:3b
-ollama run qwen2.5:3b
+
+# Backend
+cd backend
+cp .env.example .env
+npm install
+npm run dev   # http://localhost:3001
+
+# Frontend (em outro terminal)
+cd frontend
+npm install
+npm run dev   # http://localhost:5173
 ```
 
-> Dica: se preferir, use `llama3.2:3b`.
+Abra http://localhost:5173 no navegador.
 
-## 2) Instalar dependencias
+## Testes
+
+```bash
+cd backend && npm test
+cd frontend && npm test
+```
+
+## Limites (MVP)
+
+- Ranking textual simples (sem embeddings)
+- Sem autenticacao
+- Sem historico persistido
+
+## Versao antiga (Python/Streamlit)
+
+Ainda funciona:
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-```
-
-## 3) Adicionar documentos internos
-
-Coloque seus arquivos em `./docs`.
-
-Exemplo:
-
-- `docs/politicas.md`
-- `docs/faq_rh.txt`
-- `docs/manual_suporte.pdf`
-
-## 4) Rodar a app
-
-```bash
 streamlit run app.py
 ```
-
-Abra no navegador o endereco mostrado pelo Streamlit.
-
-## Configuracao na tela
-
-- URL do Ollama: `http://localhost:11434`
-- Modelo: `qwen2.5:3b`
-- Trechos usados: define quantos blocos de contexto vao para o prompt
-
-## Gerenciar Ollama
-
-**Parar o Ollama (para liberar memoria):**
-
-```bash
-sudo systemctl stop ollama
-```
-
-**Verificar status:**
-
-```bash
-sudo systemctl status ollama
-```
-
-**Reiniciar o Ollama:**
-
-```bash
-sudo systemctl start ollama
-```
-
-**Desabilitar inicio automatico no boot:**
-
-```bash
-sudo systemctl disable ollama
-```
-
-> Dica: Ollama so consome RAM quando esta rodando. Pare o serviço para liberar memoria quando nao estiver usando a app.
-
-## Limites do MVP
-
-- Busca textual simples (nao usa embeddings)
-- Sem autenticacao
-- Sem historico de conversas persistente
-
-## Proximos passos (quando quiser evoluir)
-
-1. Adicionar embeddings + banco vetorial (ex: Chroma)
-2. Melhorar ranking (BM25/hibrido)
-3. Incluir controle de acesso por usuario
-4. Salvar logs de perguntas e respostas
