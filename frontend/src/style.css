@@ -1,9 +1,10 @@
 :root {
   font-family: system-ui, -apple-system, sans-serif;
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
 body {
   margin: 0;
   background: #fafafa;
+  color: #1a1a1a;
 }
