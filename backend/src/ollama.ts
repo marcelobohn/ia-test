@@ -20,11 +20,13 @@ export interface AskOllamaArgs {
   prompt: string;
   model: string;
   ollamaUrl: string;
+  temperature?: number;
   timeoutMs?: number;
 }
 
 export async function askOllama(args: AskOllamaArgs): Promise<string> {
-  const { prompt, model, ollamaUrl, timeoutMs = 120_000 } = args;
+  const { prompt, model, ollamaUrl, temperature = 0.2, timeoutMs = 120_000 } =
+    args;
   const url = `${ollamaUrl.replace(/\/+$/, "")}/api/generate`;
 
   const controller = new AbortController();
@@ -38,7 +40,7 @@ export async function askOllama(args: AskOllamaArgs): Promise<string> {
         model,
         prompt,
         stream: false,
-        options: { temperature: 0.2 },
+        options: { temperature },
       }),
       signal: controller.signal,
     });

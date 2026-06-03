@@ -7,6 +7,7 @@ import { fetchDocsStats } from "./api.js";
 const ollamaUrl = ref("http://localhost:11434");
 const model = ref("qwen2.5:3b");
 const topK = ref(5);
+const temperature = ref(0.2);
 
 const docsCount = ref(0);
 const loadError = ref("");
@@ -35,6 +36,7 @@ onMounted(refreshStats);
         v-model:ollamaUrl="ollamaUrl"
         v-model:model="model"
         v-model:topK="topK"
+        v-model:temperature="temperature"
         @uploaded="refreshStats"
       />
       <main>
@@ -46,6 +48,7 @@ onMounted(refreshStats);
           :ollama-url="ollamaUrl"
           :model="model"
           :top-k="topK"
+          :temperature="temperature"
           :docs-count="docsCount"
         />
       </main>

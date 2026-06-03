@@ -26,6 +26,7 @@ export interface AskArgs {
   topK: number;
   model: string;
   ollamaUrl: string;
+  temperature: number;
 }
 
 export async function askQuestion(args: AskArgs): Promise<AskResponse> {

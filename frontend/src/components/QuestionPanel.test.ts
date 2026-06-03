@@ -12,6 +12,7 @@ const baseProps = {
   ollamaUrl: "http://localhost:11434",
   model: "qwen2.5:3b",
   topK: 5,
+  temperature: 0.2,
   docsCount: 3,
 };
 
@@ -54,6 +55,7 @@ describe("QuestionPanel", () => {
       topK: 5,
       model: "qwen2.5:3b",
       ollamaUrl: "http://localhost:11434",
+      temperature: 0.2,
     });
     expect(wrapper.text()).toContain("resposta gerada");
     const toggle = wrapper

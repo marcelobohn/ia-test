@@ -75,7 +75,7 @@ export async function createServer(
   app.post<{ Body: AskRequest }>(
     "/api/ask",
     async (req, reply): Promise<AskResponse> => {
-      const { question, topK, model, ollamaUrl } = req.body;
+      const { question, topK, model, ollamaUrl, temperature } = req.body;
       if (!question || !question.trim()) {
         return reply.code(400).send({ error: "question is required" }) as never;
       }
@@ -103,6 +103,7 @@ export async function createServer(
           prompt,
           model: model || opts.defaultModel,
           ollamaUrl: ollamaUrl || opts.defaultOllamaUrl,
+          temperature,
         });
         const elapsedMs = Date.now() - startedAt;
         return { answer, chunks, elapsedMs };

@@ -9,6 +9,7 @@ export interface AskRequest {
   topK: number;
   model: string;
   ollamaUrl: string;
+  temperature?: number;
 }
 
 export interface AskResponse {

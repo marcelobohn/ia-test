@@ -7,6 +7,7 @@ const props = defineProps<{
   ollamaUrl: string;
   model: string;
   topK: number;
+  temperature: number;
   docsCount: number;
 }>();
 
@@ -39,6 +40,7 @@ async function onAsk() {
       topK: props.topK,
       model: props.model,
       ollamaUrl: props.ollamaUrl,
+      temperature: props.temperature,
     });
     if (result.chunks.length === 0) {
       error.value =

@@ -13,6 +13,7 @@ const baseProps = {
   ollamaUrl: "http://localhost:11434",
   model: "qwen2.5:3b",
   topK: 5,
+  temperature: 0.2,
 };
 
 beforeEach(() => {
@@ -24,8 +25,10 @@ describe("Sidebar", () => {
   it("renders current config values", () => {
     const wrapper = mount(Sidebar, { props: baseProps });
     const textInputs = wrapper.findAll('input[type="text"]');
-    expect(textInputs[0].element.value).toBe("http://localhost:11434");
-    expect(textInputs[1].element.value).toBe("qwen2.5:3b");
+    expect((textInputs[0].element as HTMLInputElement).value).toBe(
+      "http://localhost:11434",
+    );
+    expect((textInputs[1].element as HTMLInputElement).value).toBe("qwen2.5:3b");
     expect(wrapper.text()).toContain("Trechos usados na resposta: 5");
   });
 

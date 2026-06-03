@@ -6,12 +6,14 @@ const props = defineProps<{
   ollamaUrl: string;
   model: string;
   topK: number;
+  temperature: number;
 }>();
 
 const emit = defineEmits<{
   (e: "update:ollamaUrl", v: string): void;
   (e: "update:model", v: string): void;
   (e: "update:topK", v: number): void;
+  (e: "update:temperature", v: number): void;
   (e: "uploaded"): void;
 }>();
 
@@ -74,6 +76,19 @@ async function onClearUploads() {
         :value="props.topK"
         @input="emit('update:topK', Number(($event.target as HTMLInputElement).value))"
       />
+    </label>
+
+    <label>
+      Temperatura: {{ props.temperature.toFixed(1) }}
+      <input
+        type="range"
+        min="0"
+        max="1"
+        step="0.1"
+        :value="props.temperature"
+        @input="emit('update:temperature', Number(($event.target as HTMLInputElement).value))"
+      />
+      <span class="hint">0 = focado nos documentos · 1 = mais criativo</span>
     </label>
 
     <h3>Documentos</h3>
