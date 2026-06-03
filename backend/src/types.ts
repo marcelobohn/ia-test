@@ -14,6 +14,7 @@ export interface AskRequest {
 export interface AskResponse {
   answer: string;
   chunks: DocChunk[];
+  elapsedMs?: number;
 }
 
 export interface DocsStatsResponse {

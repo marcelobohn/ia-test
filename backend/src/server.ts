@@ -98,12 +98,14 @@ export async function createServer(
 
       const prompt = buildPrompt(question, chunks);
       try {
+        const startedAt = Date.now();
         const answer = await askOllama({
           prompt,
           model: model || opts.defaultModel,
           ollamaUrl: ollamaUrl || opts.defaultOllamaUrl,
         });
-        return { answer, chunks };
+        const elapsedMs = Date.now() - startedAt;
+        return { answer, chunks, elapsedMs };
       } catch (err) {
         return reply
           .code(502)
